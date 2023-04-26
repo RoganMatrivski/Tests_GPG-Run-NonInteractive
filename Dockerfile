@@ -55,4 +55,4 @@ RUN gpg --batch --yes --pinentry-mode loopback --passphrase 'asdf' --import /wd/
 COPY . .
 RUN dotnet restore
 
-CMD ["dotnet", "run", "asdf", "encryptedFile.gpg"]
+CMD ["dotnet", "run", "encryptedFile.gpg", "/wd/private_key.asc", "asdf"]

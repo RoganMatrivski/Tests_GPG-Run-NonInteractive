@@ -1,51 +1,31 @@
-﻿using CliWrap;
-using CliWrap.Buffered;
-using System;
+﻿using System;
+using System.IO;
+using PgpCore;
 
 class Program
 {
     static async Task Main(string[] args)
     {
-        if (args.Length < 2)
+        if (args.Length != 3)
         {
-            Console.WriteLine("Usage: dotnet run <passphrase> <encryptedPath>");
+            Console.WriteLine("Usage: <input-file> <key-file> <passphrase>");
             return;
         }
-        
-        string passphrase = args[0];
-        string encryptedPath = args[1];
 
-        var result = await Cli.Wrap("gpg")
-            .WithArguments(args => args
-                .Add("--ignore-mdc-error")
-                .Add("--pinentry-mode")
-                .Add("loopback")
-                .Add("--passphrase")
-                .Add(passphrase)
-                .Add("--yes")
-                .Add("-d")
-                .Add(encryptedPath))
-            .ExecuteBufferedAsync();
+        string inputFilePath = args[0];
+        string keyFilePath = args[1];
+        string passphrase = args[2];
 
-        var StEx = result.StartTime + " - " + result.ExitTime;
+        FileInfo privateKey = new FileInfo(keyFilePath);
+        EncryptionKeys encryptionKeys = new EncryptionKeys(privateKey, passphrase);
 
-        Console.WriteLine("StEx\n=============================");
-        Console.WriteLine(StEx);
-        Console.WriteLine("");
+        // Reference input/output files
+        FileInfo inputFile = new FileInfo(inputFilePath);
 
-        if (result.ExitCode == 0)
-        {
-            string output = result.StandardOutput;
-            // handle output
-            Console.WriteLine("STDOUT\n=============================");
-            Console.WriteLine(output);
-        }
-        else
-        {
-            string error = result.StandardError;
-            // handle error
-            Console.WriteLine("STDERR\n=============================");
-            Console.WriteLine(error);
-        }
+        // Decrypt
+        PGP pgp = new PGP(encryptionKeys);
+        using (FileStream inputFileStream = new FileStream(inputFilePath, FileMode.Open))
+            // Decrypt to stdout
+            await pgp.DecryptStreamAsync(inputFileStream, Console.OpenStandardOutput());
     }
 }
